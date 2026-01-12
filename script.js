@@ -42,7 +42,7 @@ const evolutions = [
 
 // --- LISTE DES AMÉLIORATIONS (18 ITEMS) ---
 const upgrades = [
-    { name: "⚡ Clic", cost: 10, power: 1, isClick: true },
+    { name: "⚡ Clics", cost: 10, power: 1, isClick: true },
     { name: "🚽 Skibidi", cost: 15, pps: 1 },
     { name: "🍔 Fanum", cost: 100, pps: 5 },
     { name: "👑 Rizzler", cost: 500, pps: 15 },
@@ -332,3 +332,4 @@ document.getElementById('do-ascend-btn').onclick = () => { gameData.ascendLevel+
 
 setTimeout(spawnGoldenNugget, 15000);
 initShop(); loadLocalSave(); setInterval(save, 5000);
+
