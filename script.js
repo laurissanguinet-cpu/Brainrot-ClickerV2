@@ -12,8 +12,6 @@ const firebaseConfig = {
   appId: "1:498729573208:web:efad8306d196659a86632d"
 };
 
-// ------------------------------------------------------------------
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -26,76 +24,70 @@ let gameData = {
     playerName: "Invité"
 };
 
-let currentUser = null; // Stocke l'utilisateur Google connecté
+let currentUser = null;
 
-// --- GESTION DU COMPTE GOOGLE ---
+// --- GESTION CONNEXION GOOGLE ---
 
 window.loginGoogle = async function() {
     try {
         await signInWithPopup(auth, provider);
-        // Le reste est géré par onAuthStateChanged
     } catch (error) {
-        console.error("Erreur login", error);
-        alert("Erreur connexion : " + error.message);
+        console.error("Erreur connexion", error);
+        alert("Erreur: " + error.message);
     }
 };
 
 window.logoutGoogle = async function() {
     try {
         await signOut(auth);
-        location.reload(); // On recharge pour repasser en mode local proprement
+        location.reload(); 
     } catch (error) {
-        console.error("Erreur logout", error);
+        console.error("Erreur déconnexion", error);
     }
 };
 
-// Surveille si l'utilisateur se connecte ou se déconnecte
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // --- UTILISATEUR CONNECTÉ ---
+        // Connecté
         currentUser = user;
         document.getElementById('logged-out-view').style.display = 'none';
         document.getElementById('logged-in-view').style.display = 'flex';
         document.getElementById('user-avatar').src = user.photoURL;
         document.getElementById('user-name').innerText = user.displayName;
-        document.getElementById('auth-status-msg').innerText = `Connecté en tant que ${user.displayName}. Ton score est synchronisé !`;
+        document.getElementById('auth-status-msg').innerText = `Connecté en tant que ${user.displayName}`;
         document.getElementById('auth-status-msg').style.color = "#0f0";
-
-        // Charger la sauvegarde Cloud
-        await loadCloudSave();
+        await loadCloudSave(); // Charge la sauvegarde du cloud
     } else {
-        // --- UTILISATEUR DÉCONNECTÉ ---
+        // Déconnecté
         currentUser = null;
         document.getElementById('logged-out-view').style.display = 'block';
         document.getElementById('logged-in-view').style.display = 'none';
-        document.getElementById('auth-status-msg').innerText = "Connecte-toi avec Google pour apparaître ici !";
+        document.getElementById('auth-status-msg').innerText = "Connecte-toi pour apparaître ici !";
         document.getElementById('auth-status-msg').style.color = "#aaa";
-        
-        // Charger la sauvegarde Locale
-        loadLocalSave();
+        loadLocalSave(); // Charge la sauvegarde locale
     }
 });
 
-// --- SAUVEGARDE ET CHARGEMENT (CLOUD + LOCAL) ---
+// --- SAUVEGARDE ET CHARGEMENT ---
 
 async function save() {
-    // 1. Sauvegarde Locale (Toujours, par sécurité)
-    localStorage.setItem('BR_V20_LOCAL', JSON.stringify(gameData));
+    // Local
+    localStorage.setItem('BR_V22_FINAL', JSON.stringify(gameData));
 
-    // 2. Sauvegarde Cloud (Si connecté)
+    // Cloud (Si connecté)
     if (currentUser) {
         try {
-            const userRef = doc(db, "users", currentUser.uid); // Un document unique par ID Google
-            // On ajoute aussi le pseudo et la photo pour le classement
-            const saveData = {
+            const userRef = doc(db, "users", currentUser.uid);
+            await setDoc(userRef, {
                 ...gameData,
-                playerName: currentUser.displayName, // On force le nom Google
+                playerName: currentUser.displayName,
                 photoURL: currentUser.photoURL,
                 timestamp: Date.now()
-            };
-            await setDoc(userRef, saveData); // Écrase ou crée
+            });
+            document.getElementById('save-status').innerText = "Sauvegardé";
+            setTimeout(() => document.getElementById('save-status').innerText = "", 2000);
         } catch (e) {
-            console.error("Erreur sauvegarde cloud", e);
+            console.error("Erreur save cloud", e);
         }
     }
 }
@@ -106,40 +98,27 @@ async function loadCloudSave() {
         const userRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
-            const cloudData = docSnap.data();
-            // On fusionne pour éviter de perdre des nouvelles clés
-            gameData = { ...gameData, ...cloudData };
-            console.log("Sauvegarde Cloud chargée !");
+            gameData = { ...gameData, ...docSnap.data() };
             updateDisplay();
         } else {
-            console.log("Aucune sauvegarde Cloud trouvée, création d'une nouvelle...");
-            save(); // Crée la première sauvegarde
+            save(); // Crée la première save
         }
-    } catch (e) {
-        console.error("Erreur chargement cloud", e);
-    }
+    } catch (e) { console.error(e); }
 }
 
 function loadLocalSave() {
-    const s = localStorage.getItem('BR_V20_LOCAL');
-    if (s) {
-        gameData = { ...gameData, ...JSON.parse(s) };
-        console.log("Sauvegarde Locale chargée.");
-    }
-    updateDisplay();
+    const s = localStorage.getItem('BR_V22_FINAL');
+    if (s) { gameData = { ...gameData, ...JSON.parse(s) }; updateDisplay(); }
 }
 
-// --- CLASSEMENT (Lecture seule depuis la collection 'users') ---
+// --- CLASSEMENT ---
 
 window.fetchLeaderboard = async function() {
     const listDiv = document.getElementById('leaderboard-list');
     listDiv.innerHTML = "<p style='text-align:center;'>Chargement...</p>";
-
     try {
-        // On lit directement la collection "users" où tout le monde sauvegarde
         const q = query(collection(db, "users"), orderBy("bestScore", "desc"), limit(20));
         const querySnapshot = await getDocs(q);
-
         listDiv.innerHTML = "";
         let rank = 1;
 
@@ -147,17 +126,15 @@ window.fetchLeaderboard = async function() {
             const data = doc.data();
             const row = document.createElement('div');
             row.className = "leader-row";
-            
-            // Surbrillance si c'est nous
             if(currentUser && doc.id === currentUser.uid) {
                 row.style.border = "1px solid #0ff";
                 row.style.background = "rgba(0, 255, 255, 0.1)";
             }
 
-            const asc = data.ascendLevel !== undefined ? data.ascendLevel : 0;
-            const time = data.timePlayed !== undefined ? formatTime(data.timePlayed) : "-";
-            const name = data.playerName || "Joueur Inconnu";
-            const score = data.bestScore ? data.bestScore : (data.score || 0); // Fallback
+            const name = data.playerName || "Inconnu";
+            const score = data.bestScore ? data.bestScore : 0;
+            const asc = data.ascendLevel || 0;
+            const time = formatTime(data.timePlayed || 0);
 
             row.innerHTML = `
                 <div class="leader-rank">#${rank}</div>
@@ -169,19 +146,16 @@ window.fetchLeaderboard = async function() {
             listDiv.appendChild(row);
             rank++;
         });
-
-        if(rank === 1) listDiv.innerHTML = "<p>Aucun score pour l'instant.</p>";
-
-    } catch (e) {
-        console.error("Erreur lecture leaderboard: ", e);
-        listDiv.innerHTML = "<p style='color:#f44'>Impossible de charger le classement.<br>Vérifie ta connexion.</p>";
-    }
+        if(rank === 1) listDiv.innerHTML = "<p>Aucun score.</p>";
+    } catch (e) { listDiv.innerHTML = "<p style='color:#f44'>Erreur chargement.</p>"; }
 }
 
-// --- RESTE DU JEU (Classique) ---
+// --- JEU (Code classique) ---
 
 const evolutions = [ { threshold: 0, img: "1.png", name: "Recrue" }, { threshold: 100, img: "2.png", name: "Skibidi" }, { threshold: 1000, img: "3.png", name: "Fanum" }, { threshold: 10000, img: "4.png", name: "Rizzler" }, { threshold: 50000, img: "5.png", name: "Sigma" }, { threshold: 250000, img: "6.png", name: "Mewing" }, { threshold: 1000000, img: "7.png", name: "Ohio" }, { threshold: 10000000, img: "8.png", name: "Grimace" }, { threshold: 100000000, img: "9.png", name: "Gyatt" }, { threshold: 1000000000, img: "10.png", name: "God" } ];
 const upgrades = [ { name: "⚡ Clic", cost: 10, power: 1, isClick: true }, { name: "🚽 Skibidi", cost: 15, pps: 1 }, { name: "🍔 Fanum", cost: 100, pps: 5 }, { name: "👑 Rizzler", cost: 500, pps: 15 }, { name: "🗿 Sigma", cost: 2000, pps: 45 }, { name: "🤫 Mewing", cost: 10000, pps: 120 }, { name: "🌽 Ohio", cost: 50000, pps: 300 }, { name: "🍦 Grimace", cost: 150000, pps: 800 }, { name: "🧬 Looksmax", cost: 500000, pps: 2000 }, { name: "🍑 Gyatt", cost: 1500000, pps: 5000 }, { name: "👺 God", cost: 10000000, pps: 15000 } ];
+
+let goldenMultiplier = 1; let clickFrenzyMultiplier = 1; let buyAmount = 1;
 
 function formatTime(seconds) {
     if(!seconds) return "0m";
@@ -335,7 +309,7 @@ function updateDisplay() {
     document.getElementById('global-mult-display').innerText = `x${(typeof totalDisplayMult === 'number' ? totalDisplayMult.toFixed(2) : totalDisplayMult)}`;
     if (gameData.score > gameData.bestScore) gameData.bestScore = gameData.score;
     
-    // MISE A JOUR AFFICHAGE ASCENDANCE (HAUT GAUCHE)
+    // MAJ AFFICHAGE ASCENDANCE (Haut Gauche)
     document.getElementById('ascend-corner-display').innerText = "ASCENDANCE LVL " + gameData.ascendLevel;
 
     checkEvolution(); updateShop();
@@ -359,7 +333,6 @@ function checkEvolution() {
 
 window.closeM = function(id) { document.getElementById(id).style.display = 'none'; }
 
-// BOUTON CLASSEMENT
 document.getElementById('leaderboard-icon').onclick = () => {
     document.getElementById('leaderboard-modal').style.display = 'block';
     window.fetchLeaderboard();
@@ -405,4 +378,5 @@ document.getElementById('do-ascend-btn').onclick = () => {
 document.getElementById('reset-btn').onclick = () => { if(confirm("Effacer tout ?")) { localStorage.clear(); location.reload(); } };
 
 initShop(); 
-setInterval(save, 5000); // Sauvegarde automatique toutes les 5s
+loadLocalSave(); 
+setInterval(save, 5000);
