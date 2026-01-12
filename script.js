@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, getDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
 // --- ⚠️ COLLE TA CONFIGURATION FIREBASE ICI (REMPLACE CE BLOC) ⚠️ ---
 const firebaseConfig = {
   apiKey: "AIzaSyCNJrTSoi10SfXP2UQkf7eGh4Q6uPgeVDE",
@@ -11,26 +10,76 @@ const firebaseConfig = {
   messagingSenderId: "498729573208",
   appId: "1:498729573208:web:efad8306d196659a86632d"
 };
-// --------------------------------
+// ------------------------------------------------
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
+// --- LISTE DES ÉVOLUTIONS (18 NIVEAUX) ---
+const evolutions = [
+    { threshold: 0, img: "1.png", name: "Recrue" },
+    { threshold: 100, img: "2.png", name: "Skibidi" },
+    { threshold: 1000, img: "3.png", name: "Fanum" },
+    { threshold: 10000, img: "4.png", name: "Rizzler" },
+    { threshold: 50000, img: "5.png", name: "Sigma" },
+    { threshold: 250000, img: "6.png", name: "Mewing" },
+    { threshold: 1000000, img: "7.png", name: "Ohio" },
+    { threshold: 10000000, img: "8.png", name: "Grimace" },
+    { threshold: 100000000, img: "9.png", name: "Gyatt" },
+    { threshold: 1000000000, img: "10.png", name: "God" }, // 1 Milliard
+    // NOUVELLES EVOLUTIONS
+    { threshold: 5000000000, img: "11.png", name: "GigaChad" }, // 5 Mds
+    { threshold: 25000000000, img: "12.png", name: "CaseOh" }, // 25 Mds
+    { threshold: 100000000000, img: "13.png", name: "Backrooms" }, // 100 Mds
+    { threshold: 500000000000, img: "14.png", name: "NPC" }, // 500 Mds
+    { threshold: 2000000000000, img: "15.png", name: "Mogger" }, // 2 Trillions
+    { threshold: 10000000000000, img: "16.png", name: "Brainrot King" }, // 10 T
+    { threshold: 100000000000000, img: "17.png", name: "Lobotomy" }, // 100 T
+    { threshold: 1000000000000000, img: "18.png", name: "ASCENDED" } // 1 Quadrillion
+];
+
+// --- LISTE DES AMÉLIORATIONS (18 ITEMS) ---
+const upgrades = [
+    { name: "⚡ Clic", cost: 10, power: 1, isClick: true },
+    { name: "🚽 Skibidi", cost: 15, pps: 1 },
+    { name: "🍔 Fanum", cost: 100, pps: 5 },
+    { name: "👑 Rizzler", cost: 500, pps: 15 },
+    { name: "🗿 Sigma", cost: 2000, pps: 45 },
+    { name: "🤫 Mewing", cost: 10000, pps: 120 },
+    { name: "🌽 Ohio", cost: 50000, pps: 300 },
+    { name: "🍦 Grimace", cost: 150000, pps: 800 },
+    { name: "🧬 Looksmax", cost: 500000, pps: 2000 },
+    { name: "🍑 Gyatt", cost: 1500000, pps: 5000 },
+    { name: "👺 God", cost: 10000000, pps: 15000 },
+    // NOUVELLES AMÉLIORATIONS
+    { name: "🏋️ Jawline", cost: 50000000, pps: 45000 },
+    { name: "🥞 Waffle House", cost: 250000000, pps: 120000 },
+    { name: "🎮 Discord Mod", cost: 1000000000, pps: 350000 },
+    { name: "🏃 Subway Surf", cost: 5000000000, pps: 1000000 },
+    { name: "📺 Family Guy", cost: 25000000000, pps: 4000000 },
+    { name: "🧠 Lobotomy", cost: 150000000000, pps: 15000000 },
+    { name: "🎬 Absolute Cinema", cost: 1000000000000, pps: 50000000 }
+];
+
 let gameData = {
-    score: 0, upgradesOwned: Array(11).fill(0),
+    score: 0, 
+    upgradesOwned: Array(upgrades.length).fill(0), // Taille dynamique
     totalClicks: 0, timePlayed: 0, bestScore: 0,
     maxEvoReached: 0, ascendLevel: 0, goldenClicks: 0,
     playerName: "Invité"
 };
 
 let currentUser = null;
+let goldenMultiplier = 1; 
+let clickFrenzyMultiplier = 1;
+let buyAmount = 1;
 
-// --- GOOGLE AUTH ---
+// --- GESTION COMPTE GOOGLE ---
 window.loginGoogle = async function() {
     try { await signInWithPopup(auth, provider); } 
-    catch (error) { console.error(error); alert("Erreur connexion: " + error.message); }
+    catch (error) { console.error(error); alert("Erreur: " + error.message); }
 };
 
 window.logoutGoogle = async function() {
@@ -56,9 +105,9 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- SAVE SYSTEM ---
+// --- SYSTEME DE SAUVEGARDE ---
 async function save() {
-    localStorage.setItem('BR_V23_DATA', JSON.stringify(gameData));
+    localStorage.setItem('BR_V24_EXTENDED', JSON.stringify(gameData));
     if (currentUser) {
         try {
             const userRef = doc(db, "users", currentUser.uid);
@@ -69,11 +118,20 @@ async function save() {
                 timestamp: Date.now()
             });
             const status = document.getElementById('save-status');
-            status.innerText = "Sauvegardé";
-            status.style.color = "#0f0";
+            status.innerText = "Sauvegardé"; status.style.color = "#0f0";
             setTimeout(() => { status.innerText = "Synchro..."; status.style.color = "#aaa"; }, 2000);
         } catch (e) { console.error(e); }
     }
+}
+
+// Fonction utilitaire pour adapter les anciennes sauvegardes
+function sanitizeSave(data) {
+    // Si on a ajouté des améliorations, on remplit le tableau avec des 0
+    if (data.upgradesOwned.length < upgrades.length) {
+        const diff = upgrades.length - data.upgradesOwned.length;
+        for (let i = 0; i < diff; i++) data.upgradesOwned.push(0);
+    }
+    return data;
 }
 
 async function loadCloudSave() {
@@ -82,18 +140,21 @@ async function loadCloudSave() {
         const userRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
-            gameData = { ...gameData, ...docSnap.data() };
+            gameData = sanitizeSave({ ...gameData, ...docSnap.data() });
             updateDisplay();
         } else { save(); }
     } catch (e) { console.error(e); }
 }
 
 function loadLocalSave() {
-    const s = localStorage.getItem('BR_V23_DATA');
-    if (s) { gameData = { ...gameData, ...JSON.parse(s) }; updateDisplay(); }
+    const s = localStorage.getItem('BR_V24_EXTENDED');
+    if (s) { 
+        gameData = sanitizeSave({ ...gameData, ...JSON.parse(s) }); 
+        updateDisplay(); 
+    }
 }
 
-// --- LEADERBOARD ---
+// --- CLASSEMENT ---
 window.fetchLeaderboard = async function() {
     const listDiv = document.getElementById('leaderboard-list');
     listDiv.innerHTML = "<p style='text-align:center;'>Chargement...</p>";
@@ -121,18 +182,20 @@ window.fetchLeaderboard = async function() {
     } catch (e) { listDiv.innerHTML = "<p style='color:#f44'>Erreur chargement.</p>"; }
 }
 
-// --- GAME LOGIC ---
-const evolutions = [ { threshold: 0, img: "1.png", name: "Recrue" }, { threshold: 100, img: "2.png", name: "Skibidi" }, { threshold: 1000, img: "3.png", name: "Fanum" }, { threshold: 10000, img: "4.png", name: "Rizzler" }, { threshold: 50000, img: "5.png", name: "Sigma" }, { threshold: 250000, img: "6.png", name: "Mewing" }, { threshold: 1000000, img: "7.png", name: "Ohio" }, { threshold: 10000000, img: "8.png", name: "Grimace" }, { threshold: 100000000, img: "9.png", name: "Gyatt" }, { threshold: 1000000000, img: "10.png", name: "God" } ];
-const upgrades = [ { name: "⚡ Clic", cost: 10, power: 1, isClick: true }, { name: "🚽 Skibidi", cost: 15, pps: 1 }, { name: "🍔 Fanum", cost: 100, pps: 5 }, { name: "👑 Rizzler", cost: 500, pps: 15 }, { name: "🗿 Sigma", cost: 2000, pps: 45 }, { name: "🤫 Mewing", cost: 10000, pps: 120 }, { name: "🌽 Ohio", cost: 50000, pps: 300 }, { name: "🍦 Grimace", cost: 150000, pps: 800 }, { name: "🧬 Looksmax", cost: 500000, pps: 2000 }, { name: "🍑 Gyatt", cost: 1500000, pps: 5000 }, { name: "👺 God", cost: 10000000, pps: 15000 } ];
-
-let goldenMultiplier = 1; let clickFrenzyMultiplier = 1; let buyAmount = 1;
-
+// --- LOGIQUE JEU ---
 function formatTime(s) { if(!s) return "0m"; let h = Math.floor(s/3600); let m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m`; }
-function getAscendCost() { return 1000000 * Math.pow(5, gameData.ascendLevel); }
-function getNextAscendBonus() { return 0.5 + (gameData.ascendLevel * 0.1); }
+
+// ASCENDANCE MODIFIÉE POUR LES HAUTS NIVEAUX
+function getAscendCost() { 
+    // Le coût augmente plus vite mais commence haut
+    return 1000000 * Math.pow(6, gameData.ascendLevel); 
+}
+function getNextAscendBonus() { 
+    return 0.5 + (gameData.ascendLevel * 0.15); // +15% par niveau au lieu de 10%
+}
 function getMultiplier() {
-    let m = 1; for(let i=0; i<gameData.ascendLevel; i++) m *= (1 + (0.5 + (i * 0.1)));
-    return m * (1 + (gameData.maxEvoReached * 0.1)) * goldenMultiplier;
+    let m = 1; for(let i=0; i<gameData.ascendLevel; i++) m *= (1 + (0.5 + (i * 0.15)));
+    return m * (1 + (gameData.maxEvoReached * 0.15)) * goldenMultiplier; // Bonus evo augmenté aussi
 }
 
 window.setBuyAmount = function(amt) { buyAmount = amt; document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.innerText === "x"+amt)); updateShop(); }
@@ -150,11 +213,18 @@ function updateShop() {
     upgrades.forEach((upg, i) => {
         const btn = document.getElementById(`upg-${i}`); const fill = document.getElementById(`lvl-fill-${i}`);
         if(!btn) return;
+        
+        // Sécurité si gameData n'est pas encore jour
+        if (gameData.upgradesOwned[i] === undefined) gameData.upgradesOwned[i] = 0;
+
         const lvl = gameData.upgradesOwned[i]; fill.style.width = (lvl/200)*100 + "%";
+        
         if (i > 0 && gameData.upgradesOwned[i-1] < 5) { btn.disabled = true; btn.innerHTML = `<span class="upgrade-name">🔒 ${upg.name}</span><br><span style="color:#666; font-size:11px;">Niv. 5 précédent requis</span>`; return; }
+        
         let cost = 0; for(let n=0; n<buyAmount; n++) cost += Math.floor(upg.cost * Math.pow(1.15, lvl+n));
         let canBuy = (gameData.score + 0.1) >= cost; btn.disabled = !canBuy || lvl >= 200;
         let benefit = (upg.pps || upg.power) * buyAmount; let typeText = upg.isClick ? "Clic" : "PPS";
+        
         let html = `<span class="upgrade-name">${upg.name}</span> <span style="font-size:11px; color:#aaa;">(${lvl}/200)</span><br><span class="upgrade-benefit">+${benefit.toLocaleString()} ${typeText}</span><div class="upgrade-cost">${cost.toLocaleString()} pts</div>`;
         if (!canBuy && lvl < 200) html += `<span class="missing-cost">Manque ${Math.floor(cost - gameData.score).toLocaleString()}</span>`;
         else if (lvl >= 200) html = `<span class="upgrade-name">${upg.name}</span> <br><strong style="color:#0f0">MAXIMUM ATTEINT</strong>`;
@@ -187,7 +257,6 @@ document.getElementById('main-clicker').onclick = (e) => {
     updateDisplay();
 };
 
-// --- LOGIQUE GOLDEN NUGGET (NERFÉE) ---
 function spawnGoldenNugget() {
     const nugget = document.getElementById('golden-nugget');
     const x = Math.random() * (window.innerWidth - 80); const y = Math.random() * (window.innerHeight - 80);
@@ -201,8 +270,9 @@ document.getElementById('golden-nugget').onclick = () => {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
     let rand = Math.random(); let effectName = ""; let duration = 0;
     
+    // BONUS NERFÉS
     if (rand < 0.4) {
-        // 40% : Jackpot (2 minutes de PPS) -> 120 secondes
+        // 40% : Jackpot (2 minutes de PPS) -> 120s
         let pps = upgrades.reduce((acc, u, i) => acc + (u.pps ? u.pps * gameData.upgradesOwned[i] : 0), 0);
         let gain = Math.max(1000, pps * 120 * getMultiplier()); 
         gameData.score += gain; effectName = `Jackpot ! +${Math.floor(gain).toLocaleString()}`;
@@ -238,8 +308,13 @@ function updateDisplay() {
 
 function checkEvolution() {
     let cur = gameData.maxEvoReached;
+    // Vérification de sécurité pour ne pas dépasser le tableau
     if (evolutions[cur+1] && gameData.score >= evolutions[cur+1].threshold) { gameData.maxEvoReached++; save(); cur = gameData.maxEvoReached; }
-    document.getElementById('main-clicker').src = evolutions[cur].img;
+    
+    if (evolutions[cur]) {
+        document.getElementById('main-clicker').src = evolutions[cur].img;
+    }
+    
     let next = evolutions[cur + 1];
     if (next) {
         let p = ((gameData.score - evolutions[cur].threshold) / (next.threshold - evolutions[cur].threshold)) * 100;
@@ -253,7 +328,7 @@ document.getElementById('leaderboard-icon').onclick = () => { document.getElemen
 document.getElementById('stats-icon').onclick = () => { document.getElementById('stats-modal').style.display = 'block'; document.getElementById('stat-best').innerText = Math.floor(gameData.bestScore).toLocaleString(); document.getElementById('stat-clicks').innerText = gameData.totalClicks.toLocaleString(); document.getElementById('stat-ascend-lvl').innerText = gameData.ascendLevel; document.getElementById('stat-bonus').innerText = `x${getMultiplier().toFixed(2)}`; document.getElementById('stat-nuggets').innerText = gameData.goldenClicks || 0; };
 document.getElementById('collection-icon').onclick = () => { document.getElementById('collection-modal').style.display = 'block'; const g = document.getElementById('collection-grid'); g.innerHTML = ""; evolutions.forEach((evo, i) => { const d = document.createElement('div'); d.className = 'collection-item'; const img = document.createElement('img'); img.src = evo.img; if(i > gameData.maxEvoReached) img.className = 'locked-img'; const t = document.createElement('span'); t.innerText = (i <= gameData.maxEvoReached) ? evo.name : "???"; t.style.fontFamily = "Titan One"; t.style.fontSize = "12px"; d.appendChild(img); d.appendChild(t); g.appendChild(d); }); };
 document.getElementById('ascend-icon').onclick = () => { document.getElementById('ascend-modal').style.display = 'block'; const cost = getAscendCost(); const btn = document.getElementById('do-ascend-btn'); document.getElementById('next-ascend-bonus-text').innerText = `+${Math.floor(getNextAscendBonus() * 100)}%`; if (gameData.score >= cost) { btn.disabled = false; document.getElementById('ascend-msg').innerHTML = "<span style='color:#0f0'>Prêt !</span>"; } else { btn.disabled = true; document.getElementById('ascend-msg').innerHTML = `<span style='color:#f44'>Manque ${Math.floor(cost - gameData.score).toLocaleString()} pts</span>`; } };
-document.getElementById('do-ascend-btn').onclick = () => { gameData.ascendLevel++; gameData.score = 0; gameData.upgradesOwned = Array(11).fill(0); gameData.maxEvoReached = 0; window.closeM('ascend-modal'); updateDisplay(); save(); };
+document.getElementById('do-ascend-btn').onclick = () => { gameData.ascendLevel++; gameData.score = 0; gameData.upgradesOwned = Array(upgrades.length).fill(0); gameData.maxEvoReached = 0; window.closeM('ascend-modal'); updateDisplay(); save(); };
 
 setTimeout(spawnGoldenNugget, 15000);
 initShop(); loadLocalSave(); setInterval(save, 5000);
