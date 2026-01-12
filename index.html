@@ -17,15 +17,20 @@
 
     <div id="user-panel" class="hud-corner-right">
         <div id="logged-out-view">
-            <button id="google-login-btn" onclick="window.loginGoogle()">G Connexion</button>
+            <button id="google-login-btn" onclick="window.loginGoogle()">
+                <span>G</span> Se connecter
+            </button>
         </div>
         <div id="logged-in-view" style="display:none;">
-            <img id="user-avatar" src="" alt="Avatar">
+            <div class="avatar-container">
+                <img id="user-avatar" src="" alt="Avatar">
+                <div class="online-dot"></div>
+            </div>
             <div class="user-info">
                 <span id="user-name">Joueur</span>
-                <small id="save-status">Sauvegardé</small>
+                <small id="save-status">Synchro...</small>
             </div>
-            <button id="logout-btn" onclick="window.logoutGoogle()">X</button>
+            <button id="logout-btn" onclick="window.logoutGoogle()" title="Déconnexion">⏻</button>
         </div>
     </div>
 
@@ -73,8 +78,6 @@
 
     <img src="nugget.png" id="golden-nugget" draggable="false" alt="Golden Nugget">
 
-    <button id="reset-btn">Réinitialiser (Local)</button>
-
     <div id="ascend-modal" class="modal">
         <div class="modal-content">
             <div class="close-btn-container" onclick="window.closeM('ascend-modal')">&times;</div>
@@ -112,18 +115,10 @@
             <div class="close-btn-container" onclick="window.closeM('leaderboard-modal')">&times;</div>
             <h2 style="color: #ffd700;">TOP MONDIAL 🌍</h2>
             <p id="auth-status-msg" style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Connecte-toi pour apparaître ici !</p>
-            
             <div class="leader-header">
-                <span>#</span>
-                <span>Joueur</span>
-                <span>Score</span>
-                <span>⚡</span>
-                <span>🕒</span>
+                <span>#</span><span>Joueur</span><span>Score</span><span>⚡</span><span>🕒</span>
             </div>
-
-            <div class="leaderboard-list" id="leaderboard-list">
-                <p>Chargement...</p>
-            </div>
+            <div class="leaderboard-list" id="leaderboard-list"><p>Chargement...</p></div>
         </div>
     </div>
 
