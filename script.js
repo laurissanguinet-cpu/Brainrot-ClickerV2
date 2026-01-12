@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, getDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-// --- ⚠️ COLLE TA CONFIGURATION FIREBASE ICI (REMPLACE CE BLOC) ⚠️ ---
+
+// --- ⚠️ COLLE TA CONFIGURATION FIREBASE ICI ⚠️ ---
 const firebaseConfig = {
   apiKey: "AIzaSyCNJrTSoi10SfXP2UQkf7eGh4Q6uPgeVDE",
   authDomain: "brainrotclicker-5f6a8.firebaseapp.com",
@@ -17,7 +18,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// --- LISTE DES ÉVOLUTIONS (18 NIVEAUX) ---
+// --- LISTE DES ÉVOLUTIONS ---
 const evolutions = [
     { threshold: 0, img: "1.png", name: "Recrue" },
     { threshold: 100, img: "2.png", name: "Skibidi" },
@@ -28,21 +29,20 @@ const evolutions = [
     { threshold: 1000000, img: "7.png", name: "Ohio" },
     { threshold: 10000000, img: "8.png", name: "Grimace" },
     { threshold: 100000000, img: "9.png", name: "Gyatt" },
-    { threshold: 1000000000, img: "10.png", name: "God" }, // 1 Milliard
-    // NOUVELLES EVOLUTIONS
-    { threshold: 5000000000, img: "11.png", name: "GigaChad" }, // 5 Mds
-    { threshold: 25000000000, img: "12.png", name: "CaseOh" }, // 25 Mds
-    { threshold: 100000000000, img: "13.png", name: "Backrooms" }, // 100 Mds
-    { threshold: 500000000000, img: "14.png", name: "NPC" }, // 500 Mds
-    { threshold: 2000000000000, img: "15.png", name: "Mogger" }, // 2 Trillions
-    { threshold: 10000000000000, img: "16.png", name: "Brainrot King" }, // 10 T
-    { threshold: 100000000000000, img: "17.png", name: "Lobotomy" }, // 100 T
-    { threshold: 1000000000000000, img: "18.png", name: "ASCENDED" } // 1 Quadrillion
+    { threshold: 1000000000, img: "10.png", name: "God" },
+    { threshold: 5000000000, img: "11.png", name: "GigaChad" },
+    { threshold: 25000000000, img: "12.png", name: "CaseOh" },
+    { threshold: 100000000000, img: "13.png", name: "Backrooms" },
+    { threshold: 500000000000, img: "14.png", name: "NPC" },
+    { threshold: 2000000000000, img: "15.png", name: "Mogger" },
+    { threshold: 10000000000000, img: "16.png", name: "Brainrot King" },
+    { threshold: 100000000000000, img: "17.png", name: "Lobotomy" },
+    { threshold: 1000000000000000, img: "18.png", name: "ASCENDED" }
 ];
 
-// --- LISTE DES AMÉLIORATIONS (18 ITEMS) ---
+// --- LISTE DES AMÉLIORATIONS ---
 const upgrades = [
-    { name: "⚡ Clics", cost: 10, power: 1, isClick: true },
+    { name: "⚡ Clic", cost: 10, power: 1, isClick: true },
     { name: "🚽 Skibidi", cost: 15, pps: 1 },
     { name: "🍔 Fanum", cost: 100, pps: 5 },
     { name: "👑 Rizzler", cost: 500, pps: 15 },
@@ -53,7 +53,6 @@ const upgrades = [
     { name: "🧬 Looksmax", cost: 500000, pps: 2000 },
     { name: "🍑 Gyatt", cost: 1500000, pps: 5000 },
     { name: "👺 God", cost: 10000000, pps: 15000 },
-    // NOUVELLES AMÉLIORATIONS
     { name: "🏋️ Jawline", cost: 50000000, pps: 45000 },
     { name: "🥞 Waffle House", cost: 250000000, pps: 120000 },
     { name: "🎮 Discord Mod", cost: 1000000000, pps: 350000 },
@@ -64,8 +63,7 @@ const upgrades = [
 ];
 
 let gameData = {
-    score: 0, 
-    upgradesOwned: Array(upgrades.length).fill(0), // Taille dynamique
+    score: 0, upgradesOwned: Array(upgrades.length).fill(0),
     totalClicks: 0, timePlayed: 0, bestScore: 0,
     maxEvoReached: 0, ascendLevel: 0, goldenClicks: 0,
     playerName: "Invité"
@@ -75,6 +73,20 @@ let currentUser = null;
 let goldenMultiplier = 1; 
 let clickFrenzyMultiplier = 1;
 let buyAmount = 1;
+
+// --- NOUVELLE FONCTION DE FORMATAGE (SCIENTIFIQUE) ---
+function formatNumber(num) {
+    if (!num) return "0";
+    // Seuil : 1000 Milliards (1e12)
+    if (num >= 1e12) {
+        // Affiche en scientifique (ex: 1.52e12) en enlevant le "+"
+        return Number(num).toExponential(2).replace("+", "");
+    }
+    // Sinon affichage classique avec virgules
+    return Math.floor(num).toLocaleString();
+}
+
+function formatTime(s) { if(!s) return "0m"; let h = Math.floor(s/3600); let m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m`; }
 
 // --- GESTION COMPTE GOOGLE ---
 window.loginGoogle = async function() {
@@ -105,9 +117,9 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- SYSTEME DE SAUVEGARDE ---
+// --- SAVE SYSTEM ---
 async function save() {
-    localStorage.setItem('BR_V24_EXTENDED', JSON.stringify(gameData));
+    localStorage.setItem('BR_V25_SCIENTIFIC', JSON.stringify(gameData));
     if (currentUser) {
         try {
             const userRef = doc(db, "users", currentUser.uid);
@@ -124,9 +136,7 @@ async function save() {
     }
 }
 
-// Fonction utilitaire pour adapter les anciennes sauvegardes
 function sanitizeSave(data) {
-    // Si on a ajouté des améliorations, on remplit le tableau avec des 0
     if (data.upgradesOwned.length < upgrades.length) {
         const diff = upgrades.length - data.upgradesOwned.length;
         for (let i = 0; i < diff; i++) data.upgradesOwned.push(0);
@@ -147,14 +157,14 @@ async function loadCloudSave() {
 }
 
 function loadLocalSave() {
-    const s = localStorage.getItem('BR_V24_EXTENDED');
+    const s = localStorage.getItem('BR_V25_SCIENTIFIC');
     if (s) { 
         gameData = sanitizeSave({ ...gameData, ...JSON.parse(s) }); 
         updateDisplay(); 
     }
 }
 
-// --- CLASSEMENT ---
+// --- CLASSEMENT (AVEC FORMATAGE) ---
 window.fetchLeaderboard = async function() {
     const listDiv = document.getElementById('leaderboard-list');
     listDiv.innerHTML = "<p style='text-align:center;'>Chargement...</p>";
@@ -174,7 +184,9 @@ window.fetchLeaderboard = async function() {
             const score = data.bestScore || 0;
             const asc = data.ascendLevel || 0;
             const time = formatTime(data.timePlayed || 0);
-            row.innerHTML = `<div class="leader-rank">#${rank}</div><div class="leader-name">${name}</div><div class="leader-score">${Math.floor(score).toLocaleString()}</div><div class="leader-ascend">${asc}</div><div class="leader-time">${time}</div>`;
+            
+            // Formatage du score dans le leaderboard aussi
+            row.innerHTML = `<div class="leader-rank">#${rank}</div><div class="leader-name">${name}</div><div class="leader-score">${formatNumber(score)}</div><div class="leader-ascend">${asc}</div><div class="leader-time">${time}</div>`;
             listDiv.appendChild(row);
             rank++;
         });
@@ -183,19 +195,12 @@ window.fetchLeaderboard = async function() {
 }
 
 // --- LOGIQUE JEU ---
-function formatTime(s) { if(!s) return "0m"; let h = Math.floor(s/3600); let m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m`; }
 
-// ASCENDANCE MODIFIÉE POUR LES HAUTS NIVEAUX
-function getAscendCost() { 
-    // Le coût augmente plus vite mais commence haut
-    return 1000000 * Math.pow(6, gameData.ascendLevel); 
-}
-function getNextAscendBonus() { 
-    return 0.5 + (gameData.ascendLevel * 0.15); // +15% par niveau au lieu de 10%
-}
+function getAscendCost() { return 1000000 * Math.pow(6, gameData.ascendLevel); }
+function getNextAscendBonus() { return 0.5 + (gameData.ascendLevel * 0.15); }
 function getMultiplier() {
     let m = 1; for(let i=0; i<gameData.ascendLevel; i++) m *= (1 + (0.5 + (i * 0.15)));
-    return m * (1 + (gameData.maxEvoReached * 0.15)) * goldenMultiplier; // Bonus evo augmenté aussi
+    return m * (1 + (gameData.maxEvoReached * 0.15)) * goldenMultiplier;
 }
 
 window.setBuyAmount = function(amt) { buyAmount = amt; document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.innerText === "x"+amt)); updateShop(); }
@@ -213,10 +218,7 @@ function updateShop() {
     upgrades.forEach((upg, i) => {
         const btn = document.getElementById(`upg-${i}`); const fill = document.getElementById(`lvl-fill-${i}`);
         if(!btn) return;
-        
-        // Sécurité si gameData n'est pas encore jour
         if (gameData.upgradesOwned[i] === undefined) gameData.upgradesOwned[i] = 0;
-
         const lvl = gameData.upgradesOwned[i]; fill.style.width = (lvl/200)*100 + "%";
         
         if (i > 0 && gameData.upgradesOwned[i-1] < 5) { btn.disabled = true; btn.innerHTML = `<span class="upgrade-name">🔒 ${upg.name}</span><br><span style="color:#666; font-size:11px;">Niv. 5 précédent requis</span>`; return; }
@@ -225,8 +227,10 @@ function updateShop() {
         let canBuy = (gameData.score + 0.1) >= cost; btn.disabled = !canBuy || lvl >= 200;
         let benefit = (upg.pps || upg.power) * buyAmount; let typeText = upg.isClick ? "Clic" : "PPS";
         
-        let html = `<span class="upgrade-name">${upg.name}</span> <span style="font-size:11px; color:#aaa;">(${lvl}/200)</span><br><span class="upgrade-benefit">+${benefit.toLocaleString()} ${typeText}</span><div class="upgrade-cost">${cost.toLocaleString()} pts</div>`;
-        if (!canBuy && lvl < 200) html += `<span class="missing-cost">Manque ${Math.floor(cost - gameData.score).toLocaleString()}</span>`;
+        // Formatage des coûts et bonus dans le shop
+        let html = `<span class="upgrade-name">${upg.name}</span> <span style="font-size:11px; color:#aaa;">(${lvl}/200)</span><br><span class="upgrade-benefit">+${formatNumber(benefit)} ${typeText}</span><div class="upgrade-cost">${formatNumber(cost)} pts</div>`;
+        
+        if (!canBuy && lvl < 200) html += `<span class="missing-cost">Manque ${formatNumber(cost - gameData.score)}</span>`;
         else if (lvl >= 200) html = `<span class="upgrade-name">${upg.name}</span> <br><strong style="color:#0f0">MAXIMUM ATTEINT</strong>`;
         btn.innerHTML = html;
     });
@@ -242,7 +246,9 @@ window.buyUpgrade = function(i, event) {
 }
 
 function createFloatingSpendText(event, amount) {
-    const txt = document.createElement('div'); txt.className = 'spending-text'; txt.innerText = "-" + amount.toLocaleString();
+    const txt = document.createElement('div'); txt.className = 'spending-text'; 
+    // Formatage du texte flottant
+    txt.innerText = "-" + formatNumber(amount);
     let x = event && event.clientX ? event.clientX : window.innerWidth / 2; let y = event && event.clientY ? event.clientY : window.innerHeight / 2;
     txt.style.left = x + 'px'; txt.style.top = y + 'px'; document.body.appendChild(txt); setTimeout(() => txt.remove(), 1000);
 }
@@ -252,7 +258,9 @@ document.getElementById('main-clicker').onclick = (e) => {
     let gain = (1 + (upgrades[0].power * gameData.upgradesOwned[0])) * getMultiplier() * clickFrenzyMultiplier;
     gameData.score += gain; gameData.totalClicks++;
     const img = document.getElementById('main-clicker'); img.classList.remove('shake'); void img.offsetWidth; img.classList.add('shake');
-    const txt = document.createElement('div'); txt.className = 'floating-text'; txt.innerText = "+" + Math.floor(gain);
+    const txt = document.createElement('div'); txt.className = 'floating-text'; 
+    // Formatage du texte flottant
+    txt.innerText = "+" + formatNumber(gain);
     txt.style.left = e.clientX + 'px'; txt.style.top = e.clientY + 'px'; document.body.appendChild(txt); setTimeout(() => txt.remove(), 1000);
     updateDisplay();
 };
@@ -270,17 +278,15 @@ document.getElementById('golden-nugget').onclick = () => {
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]); 
     let rand = Math.random(); let effectName = ""; let duration = 0;
     
-    // BONUS NERFÉS
     if (rand < 0.4) {
-        // 40% : Jackpot (2 minutes de PPS) -> 120s
         let pps = upgrades.reduce((acc, u, i) => acc + (u.pps ? u.pps * gameData.upgradesOwned[i] : 0), 0);
         let gain = Math.max(1000, pps * 120 * getMultiplier()); 
-        gameData.score += gain; effectName = `Jackpot ! +${Math.floor(gain).toLocaleString()}`;
+        gameData.score += gain; 
+        // Formatage message jackpot
+        effectName = `Jackpot ! +${formatNumber(gain)}`;
     } else if (rand < 0.7) {
-        // 30% : x5 Global pendant 30s
         goldenMultiplier = 5; duration = 30; effectName = "FRENESIE (x5 Global)";
     } else {
-        // 30% : Clic x20 pendant 10s
         clickFrenzyMultiplier = 20; duration = 10; effectName = "CLIC DIVIN (x20)";
     }
     const statusDiv = document.getElementById('golden-status'); statusDiv.style.display = 'block'; statusDiv.innerText = effectName;
@@ -296,8 +302,10 @@ setInterval(() => {
 
 function updateDisplay() {
     let mult = getMultiplier();
-    document.getElementById('score').innerText = Math.floor(gameData.score).toLocaleString();
-    document.getElementById('pps').innerText = Math.floor(upgrades.reduce((acc, u, i) => acc + (u.pps ? u.pps * gameData.upgradesOwned[i] : 0), 0) * mult).toLocaleString();
+    // UTILISATION DE FORMATNUMBER POUR SCORE ET PPS
+    document.getElementById('score').innerText = formatNumber(gameData.score);
+    document.getElementById('pps').innerText = formatNumber(Math.floor(upgrades.reduce((acc, u, i) => acc + (u.pps ? u.pps * gameData.upgradesOwned[i] : 0), 0) * mult));
+    
     let totalDisplayMult = mult;
     if (clickFrenzyMultiplier > 1) totalDisplayMult += " (Clic x20!)";
     document.getElementById('global-mult-display').innerText = `x${(typeof totalDisplayMult === 'number' ? totalDisplayMult.toFixed(2) : totalDisplayMult)}`;
@@ -308,26 +316,36 @@ function updateDisplay() {
 
 function checkEvolution() {
     let cur = gameData.maxEvoReached;
-    // Vérification de sécurité pour ne pas dépasser le tableau
     if (evolutions[cur+1] && gameData.score >= evolutions[cur+1].threshold) { gameData.maxEvoReached++; save(); cur = gameData.maxEvoReached; }
-    
-    if (evolutions[cur]) {
-        document.getElementById('main-clicker').src = evolutions[cur].img;
-    }
-    
+    if (evolutions[cur]) document.getElementById('main-clicker').src = evolutions[cur].img;
     let next = evolutions[cur + 1];
     if (next) {
         let p = ((gameData.score - evolutions[cur].threshold) / (next.threshold - evolutions[cur].threshold)) * 100;
         document.getElementById('progress-bar').style.width = Math.max(0, Math.min(100, p)) + "%";
-        document.getElementById('next-evolution-text').innerText = `Suivant: ${Math.floor(next.threshold - gameData.score)} pts`;
+        // Formatage seuil suivant
+        document.getElementById('next-evolution-text').innerText = `Suivant: ${formatNumber(next.threshold - gameData.score)} pts`;
     } else { document.getElementById('progress-bar').style.width = "100%"; document.getElementById('next-evolution-text').innerText = "MAX"; }
 }
 
 window.closeM = function(id) { document.getElementById(id).style.display = 'none'; }
 document.getElementById('leaderboard-icon').onclick = () => { document.getElementById('leaderboard-modal').style.display = 'block'; window.fetchLeaderboard(); };
-document.getElementById('stats-icon').onclick = () => { document.getElementById('stats-modal').style.display = 'block'; document.getElementById('stat-best').innerText = Math.floor(gameData.bestScore).toLocaleString(); document.getElementById('stat-clicks').innerText = gameData.totalClicks.toLocaleString(); document.getElementById('stat-ascend-lvl').innerText = gameData.ascendLevel; document.getElementById('stat-bonus').innerText = `x${getMultiplier().toFixed(2)}`; document.getElementById('stat-nuggets').innerText = gameData.goldenClicks || 0; };
+document.getElementById('stats-icon').onclick = () => { 
+    document.getElementById('stats-modal').style.display = 'block'; 
+    document.getElementById('stat-best').innerText = formatNumber(gameData.bestScore); 
+    document.getElementById('stat-clicks').innerText = gameData.totalClicks.toLocaleString(); 
+    document.getElementById('stat-ascend-lvl').innerText = gameData.ascendLevel; 
+    document.getElementById('stat-bonus').innerText = `x${getMultiplier().toFixed(2)}`; 
+    document.getElementById('stat-nuggets').innerText = gameData.goldenClicks || 0; 
+};
 document.getElementById('collection-icon').onclick = () => { document.getElementById('collection-modal').style.display = 'block'; const g = document.getElementById('collection-grid'); g.innerHTML = ""; evolutions.forEach((evo, i) => { const d = document.createElement('div'); d.className = 'collection-item'; const img = document.createElement('img'); img.src = evo.img; if(i > gameData.maxEvoReached) img.className = 'locked-img'; const t = document.createElement('span'); t.innerText = (i <= gameData.maxEvoReached) ? evo.name : "???"; t.style.fontFamily = "Titan One"; t.style.fontSize = "12px"; d.appendChild(img); d.appendChild(t); g.appendChild(d); }); };
-document.getElementById('ascend-icon').onclick = () => { document.getElementById('ascend-modal').style.display = 'block'; const cost = getAscendCost(); const btn = document.getElementById('do-ascend-btn'); document.getElementById('next-ascend-bonus-text').innerText = `+${Math.floor(getNextAscendBonus() * 100)}%`; if (gameData.score >= cost) { btn.disabled = false; document.getElementById('ascend-msg').innerHTML = "<span style='color:#0f0'>Prêt !</span>"; } else { btn.disabled = true; document.getElementById('ascend-msg').innerHTML = `<span style='color:#f44'>Manque ${Math.floor(cost - gameData.score).toLocaleString()} pts</span>`; } };
+document.getElementById('ascend-icon').onclick = () => { 
+    document.getElementById('ascend-modal').style.display = 'block'; 
+    const cost = getAscendCost(); 
+    const btn = document.getElementById('do-ascend-btn'); 
+    document.getElementById('next-ascend-bonus-text').innerText = `+${Math.floor(getNextAscendBonus() * 100)}%`; 
+    if (gameData.score >= cost) { btn.disabled = false; document.getElementById('ascend-msg').innerHTML = "<span style='color:#0f0'>Prêt !</span>"; } 
+    else { btn.disabled = true; document.getElementById('ascend-msg').innerHTML = `<span style='color:#f44'>Manque ${formatNumber(cost - gameData.score)} pts</span>`; } 
+};
 document.getElementById('do-ascend-btn').onclick = () => { gameData.ascendLevel++; gameData.score = 0; gameData.upgradesOwned = Array(upgrades.length).fill(0); gameData.maxEvoReached = 0; window.closeM('ascend-modal'); updateDisplay(); save(); };
 
 setTimeout(spawnGoldenNugget, 15000);
