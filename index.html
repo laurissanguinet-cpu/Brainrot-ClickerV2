@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -11,19 +12,22 @@
 </head>
 <body>
 
-    <div id="user-panel">
+    <div id="ascend-corner-display" class="hud-corner-left">
+        ASCENDANCE LVL 0
+    </div>
+
+    <div id="user-panel" class="hud-corner-right">
         <div id="logged-out-view">
-            <button id="google-login-btn" onclick="window.loginGoogle()">Se connecter avec Google</button>
+            <button id="google-login-btn" onclick="window.loginGoogle()">G Connexion</button>
         </div>
         <div id="logged-in-view" style="display:none;">
             <img id="user-avatar" src="" alt="Avatar">
-            <span id="user-name">...</span>
+            <div class="user-info">
+                <span id="user-name">Joueur</span>
+                <small id="save-status">Sauvegardé</small>
+            </div>
             <button id="logout-btn" onclick="window.logoutGoogle()">X</button>
         </div>
-    </div>
-
-    <div id="ascend-corner-display" class="ascend-corner-display">
-        ASCENDANCE LVL 0
     </div>
 
     <div class="game-container">
@@ -108,11 +112,8 @@
         <div class="modal-content" style="width: 550px; max-width: 95vw;">
             <div class="close-btn-container" onclick="window.closeM('leaderboard-modal')">&times;</div>
             <h2 style="color: #ffd700;">TOP MONDIAL 🌍</h2>
+            <p id="auth-status-msg" style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Connecte-toi pour apparaître ici !</p>
             
-            <p id="auth-status-msg" style="font-size: 13px; color: #aaa; margin-bottom: 15px;">
-                Connecte-toi avec Google pour apparaître ici !
-            </p>
-
             <div class="leader-header">
                 <span>#</span>
                 <span>Joueur</span>
